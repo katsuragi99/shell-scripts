@@ -1,0 +1,38 @@
+#!/bin/bash
+# WORKS ONLY ON NVIDIA SYSTEMS WITH OPTIRUN AND VIRTUALGL!
+# Syntax of a line in the file should be like this-
+# video_title =>https://youtube.com/id
+# - To play an existing file, the first argument should be "path"
+# and the second argument should be the actual path of the file.
+# - To play only audio of the link, set the second argument to "no".
+
+_video_format=${2}
+_file_path="Add your file path here"
+_keyword="${1}"
+_audio_channel=${3}
+
+if [[ "${_keyword}" == "list" ]]; then
+		less ${_file_path}
+
+elif [[ "${_keyword}" =~ ^h[ttps]+{4}...([w]{3}|[youtube]+).+ ]]; then
+		VDPAU_DRIVER=nvidia optirun -b virtualgl -c proxy mpv \
+				--video="${_video_format:=auto}" --hwdec=vdpau \
+				--audio-channels=${_audio_channel:=auto} -vo gpu "${_keyword}"
+
+elif [[ "${_keyword}" == "path" ]]; then
+		VDPAU_DRIVER=nvidia optirun -b virtualgl -c proxy mpv --video=auto \
+				--hwdec=vdpau --audio-channels=${_audio_channel:=auto} -vo gpu "${2}"
+
+
+else
+		song_count=$(sed -ne 's/'[[:space:]]*${_keyword}'/&/pI' ${_file_path} | wc -l);
+		if [[ song_count -gt 1 ]]; then
+				echo "${song_count} songs found with the same keyword. Be specific";
+				exit 0;
+		else
+				VDPAU_DRIVER=nvidia optirun -b virtualgl -c proxy mpv \
+						--video="${_video_format:=auto}" --hwdec=vdpau --audio-channels=${_audio_channel:=auto} -vo gpu \
+						$(sed -ne 's/'[[:space:]]*${_keyword}'/&/pI' ${_file_path} \
+						| cut --complement -d ">" -f 1)
+		fi
+fi
